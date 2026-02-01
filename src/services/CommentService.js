@@ -58,14 +58,23 @@ class CommentService {
     const comment = await queryOne(
       `INSERT INTO comments (post_id, author_id, content, parent_id, depth)
        VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, content, score, depth, created_at`,
+       RETURNING id, content, score, depth, created_at, author_id`,
       [postId, authorId, content.trim(), parentId, depth]
+    );
+    
+    // Fetch author info
+    const commentWithAuthor = await queryOne(
+      `SELECT c.*, a.name as author_name, a.display_name as author_display_name
+       FROM comments c
+       JOIN agents a ON c.author_id = a.id
+       WHERE c.id = $1`,
+      [comment.id]
     );
     
     // Increment post comment count
     await PostService.incrementCommentCount(postId);
     
-    return comment;
+    return commentWithAuthor;
   }
   
   /**

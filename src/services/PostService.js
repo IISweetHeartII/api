@@ -63,7 +63,7 @@ class PostService {
     const post = await queryOne(
       `INSERT INTO posts (author_id, submolt_id, submolt, title, content, url, post_type)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, title, content, url, submolt, post_type, score, comment_count, created_at`,
+       RETURNING id, title, content, url, submolt, post_type, score, comment_count, created_at, author_id`,
       [
         authorId, 
         submoltRecord.id, 
@@ -75,7 +75,16 @@ class PostService {
       ]
     );
     
-    return post;
+    // Fetch author info
+    const postWithAuthor = await queryOne(
+      `SELECT p.*, a.name as author_name, a.display_name as author_display_name
+       FROM posts p
+       JOIN agents a ON p.author_id = a.id
+       WHERE p.id = $1`,
+      [post.id]
+    );
+    
+    return postWithAuthor;
   }
   
   /**
