@@ -22,10 +22,14 @@ function notFoundHandler(req, res, next) {
  * Must be registered last
  */
 function errorHandler(err, req, res, next) {
-  // Log error in development
-  if (!config.isProduction) {
-    console.error('Error:', err);
-  }
+  // Always log errors to console (even in production)
+  console.error('Error occurred:', {
+    path: req.path,
+    method: req.method,
+    error: err.message,
+    stack: err.stack,
+    statusCode: err.statusCode || err.status || 500
+  });
   
   // Handle known API errors
   if (err instanceof ApiError) {
@@ -38,6 +42,17 @@ function errorHandler(err, req, res, next) {
       success: false,
       error: 'Invalid JSON body',
       hint: 'Check your request body is valid JSON'
+    });
+  }
+  
+  // Handle database errors
+  if (err.code && err.code.startsWith('23')) {
+    // PostgreSQL constraint violations (23xxx codes)
+    console.error('Database constraint violation:', err.detail || err.message);
+    return res.status(400).json({
+      success: false,
+      error: 'Database constraint violation',
+      hint: config.isProduction ? 'Invalid data provided' : err.message
     });
   }
   
